@@ -1,0 +1,81 @@
+import UIKit
+
+class ViewController: UIViewController {
+    @IBOutlet weak var textView: UITextView!
+    @IBOutlet weak var dbProcessTextView: UITextView!
+    @IBOutlet weak var reflectionTextView: UITextView!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        loadBiblePassage()
+        loadDBProcess()
+    }
+    
+    func loadBiblePassage() {
+        let apiUrl = "https://api.bibles.org/v2/passages.json?q[]=john%201&version=eng-KJV"
+        let headers = [
+            "api-key": "your-api-key-here"
+        ]
+        
+        // Make the API request using URLSession
+        if let url = URL(string: apiUrl) {
+            var request = URLRequest(url: url)
+            request.allHTTPHeaderFields = headers
+            
+            URLSession.shared.dataTask(with: request) { [weak self] (data, response, error) in
+                if let error = error {
+                    print("Error fetching Bible passage: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let data = data else {
+                    print("No data returned from API")
+                    return
+                }
+                
+                do {
+                    let decoder = JSONDecoder()
+                    let response = try decoder.decode(BibleApiResponse.self, from: data)
+                    
+                    DispatchQueue.main.async {
+                        if let passage = response.passages.first {
+                            self?.textView.text = passage.content
+                        } else {
+                            self?.textView.text = "No passage found"
+                        }
+                    }
+                } catch {
+                    print("Error decoding API response: \(error.localizedDescription)")
+                }
+            }.resume()
+        }
+    }
+    
+    func loadDBProcess() {
+        let dbProcess = """
+        Discovery Bible Study Process:
+        1. Pray for the Holy Spirit to guide your study.
+        2. Read the passage three times.
+        3. What does this passage say about God?
+        4. What does this passage say about people?
+        5. Is there an example to follow or a command to obey?
+        6. Is there a promise to claim or a warning to heed?
+        7. Share with each other what God is saying to you through this passage.
+        """
+        
+        dbProcessTextView.text = dbProcess
+    }
+    
+    @IBAction func saveReflection(_ sender: Any) {
+        guard let reflection = reflectionTextView.text else { return }
+        
+        // Save reflection locally (you can modify this to use CoreData or a different storage mechanism)
+        UserDefaults.standard.set(reflection, forKey: "reflection")
+        
+        // Show alert to confirm reflection was saved
+        let alert = UIAlertController(title: "Reflection Saved", message: "Your reflection has been saved.", preferredStyle: .alert)
+        let okAction = UIAlertAction(title: "OK", style: .default, handler: nil)
+        alert.addAction(okAction)
+        present(alert, animated: true, completion: nil)
+    }
+}
